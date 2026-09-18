@@ -1,0 +1,789 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Album</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0b0d12;
+            color: #f5f5f7;
+        }
+
+        /* HEADER */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(11, 13, 18, 0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 18px 28px;
+        }
+
+        .header-inner {
+            max-width: 1500px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .title-area h1 {
+            margin: 0;
+            font-size: 25px;
+        }
+
+        .title-area p {
+            margin: 5px 0 0;
+            color: #9297a5;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .button {
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #1b1f29;
+            color: white;
+            transition: 0.2s;
+        }
+
+        .button:hover {
+            background: #292e3a;
+        }
+
+        .button.primary {
+            background: #ffffff;
+            color: #111318;
+            font-weight: 600;
+        }
+
+        .button.primary:hover {
+            background: #dedee2;
+        }
+
+        .button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* CONTROLS */
+        .controls {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px 28px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter {
+            background: #151820;
+            color: #aeb3bf;
+            padding: 8px 14px;
+            border-radius: 20px;
+        }
+
+        .filter.active {
+            background: #ffffff;
+            color: #111318;
+        }
+
+        .selection-info {
+            color: #9297a5;
+            font-size: 14px;
+        }
+
+        /* GALLERY */
+        main {
+            max-width: 1500px;
+            margin: auto;
+            padding: 20px 28px 50px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            border-radius: 14px;
+            background: #151820;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card.selected {
+            border-color: white;
+        }
+
+        .card img,
+        .card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card video {
+            pointer-events: none;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: auto 0 0 0;
+            padding: 35px 12px 12px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        }
+
+        .filename {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 6px 9px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            font-size: 12px;
+        }
+
+        .checkbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 5;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.selected .checkbox {
+            background: white;
+            color: black;
+        }
+
+        .checkbox::after {
+            content: "✓";
+            opacity: 0;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .card.selected .checkbox::after {
+            opacity: 1;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #8d92a0;
+        }
+
+        .error {
+            text-align: center;
+            padding: 80px 20px;
+            color: #ff8b8b;
+        }
+
+        /* VIEWER */
+        .viewer {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.94);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .viewer.open {
+            display: flex;
+        }
+
+        .viewer-content {
+            max-width: 95vw;
+            max-height: 90vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viewer-content img,
+        .viewer-content video {
+            max-width: 90vw;
+            max-height: 82vh;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+        }
+
+        .viewer-top {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 110;
+        }
+
+        .viewer-name {
+            color: white;
+            font-size: 14px;
+            background: rgba(20,20,20,0.7);
+            backdrop-filter: blur(10px);
+            padding: 9px 13px;
+            border-radius: 9px;
+        }
+
+        .viewer-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .viewer-button {
+            background: rgba(35,35,35,0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 9px;
+        }
+
+        .viewer-button:hover {
+            background: rgba(70,70,70,0.9);
+        }
+
+        .nav {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(35,35,35,0.75);
+            color: white;
+            font-size: 25px;
+            z-index: 110;
+        }
+
+        .nav:hover {
+            background: rgba(70,70,70,0.9);
+        }
+
+        .nav.left {
+            left: 20px;
+        }
+
+        .nav.right {
+            right: 20px;
+        }
+
+        /* MOBILE */
+        @media (max-width: 700px) {
+            header {
+                padding: 15px;
+            }
+
+            .header-inner {
+                align-items: flex-start;
+            }
+
+            .actions .button:not(.primary) {
+                display: none;
+            }
+
+            .controls,
+            main {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            .gallery {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 7px;
+            }
+
+            .card {
+                border-radius: 9px;
+            }
+
+            .nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="title-area">
+            <h1>Photo Album</h1>
+            <p id="count">Loading...</p>
+        </div>
+
+        <div class="actions">
+            <button class="button" onclick="selectAll()">Select All</button>
+            <button class="button" onclick="clearSelection()">Clear</button>
+            <button class="button primary" id="downloadSelected" onclick="downloadSelected()" disabled>
+                Download Selected
+            </button>
+        </div>
+    </div>
+</header>
+
+<div class="controls">
+    <div class="filters">
+        <button class="filter active" data-filter="all">All</button>
+        <button class="filter" data-filter="image">Photos</button>
+        <button class="filter" data-filter="video">Videos</button>
+    </div>
+
+    <div class="selection-info" id="selectionInfo">
+        0 selected
+    </div>
+</div>
+
+<main>
+    <div id="loading" class="loading">
+        Loading album...
+    </div>
+
+    <div id="error" class="error" style="display:none;">
+        Could not load album.json.
+    </div>
+
+    <div class="gallery" id="gallery"></div>
+</main>
+
+<!-- FULLSCREEN VIEWER -->
+<div class="viewer" id="viewer">
+
+    <div class="viewer-top">
+        <div class="viewer-name" id="viewerName"></div>
+
+        <div class="viewer-actions">
+            <button class="viewer-button" onclick="downloadCurrent()">
+                Download
+            </button>
+
+            <button class="viewer-button" onclick="closeViewer()">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <button class="nav left" onclick="previousMedia()">‹</button>
+    <button class="nav right" onclick="nextMedia()">›</button>
+
+    <div class="viewer-content" id="viewerContent"></div>
+</div>
+
+<script>
+    let files = [];
+    let filteredFiles = [];
+    let selected = new Set();
+
+    let currentIndex = -1;
+    let currentFilter = "all";
+
+    const gallery = document.getElementById("gallery");
+    const count = document.getElementById("count");
+    const loading = document.getElementById("loading");
+    const error = document.getElementById("error");
+
+    /* LOAD JSON */
+    async function loadAlbum() {
+        try {
+            const response = await fetch("./album.json");
+
+            if (!response.ok) {
+                throw new Error("Failed to load album.json");
+            }
+
+            const data = await response.json();
+
+            files = data.files.filter(file =>
+                file.mediaType === "image" ||
+                file.mediaType === "video"
+            );
+
+            applyFilter();
+
+            loading.style.display = "none";
+
+        } catch (err) {
+            console.error(err);
+
+            loading.style.display = "none";
+            error.style.display = "block";
+        }
+    }
+
+    /* FILTER */
+    document.querySelectorAll(".filter").forEach(button => {
+        button.addEventListener("click", () => {
+
+            document.querySelectorAll(".filter")
+                .forEach(b => b.classList.remove("active"));
+
+            button.classList.add("active");
+
+            currentFilter = button.dataset.filter;
+
+            applyFilter();
+        });
+    });
+
+    function applyFilter() {
+
+        if (currentFilter === "all") {
+            filteredFiles = [...files];
+        } else {
+            filteredFiles = files.filter(
+                file => file.mediaType === currentFilter
+            );
+        }
+
+        renderGallery();
+
+        count.textContent =
+            `${files.length} items • ` +
+            `${files.filter(f => f.mediaType === "image").length} photos • ` +
+            `${files.filter(f => f.mediaType === "video").length} videos`;
+    }
+
+    /* RENDER */
+    function renderGallery() {
+
+        gallery.innerHTML = "";
+
+        filteredFiles.forEach((file, index) => {
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            if (selected.has(file.name)) {
+                card.classList.add("selected");
+            }
+
+            const checkbox = document.createElement("div");
+            checkbox.className = "checkbox";
+
+            checkbox.addEventListener("click", event => {
+                event.stopPropagation();
+                toggleSelection(file.name);
+            });
+
+            card.appendChild(checkbox);
+
+            if (file.mediaType === "image") {
+
+                const img = document.createElement("img");
+
+                img.src = file.url;
+                img.loading = "lazy";
+                img.alt = file.name;
+
+                card.appendChild(img);
+
+            } else {
+
+                const video = document.createElement("video");
+
+                video.src = file.url;
+                video.muted = true;
+                video.preload = "metadata";
+
+                card.appendChild(video);
+
+                const badge = document.createElement("div");
+                badge.className = "video-badge";
+                badge.textContent = "▶ Video";
+
+                card.appendChild(badge);
+            }
+
+            const overlay = document.createElement("div");
+            overlay.className = "overlay";
+
+            const filename = document.createElement("div");
+            filename.className = "filename";
+            filename.textContent = file.name;
+
+            overlay.appendChild(filename);
+            card.appendChild(overlay);
+
+            card.addEventListener("click", () => {
+                openViewer(index);
+            });
+
+            gallery.appendChild(card);
+        });
+
+        updateSelectionUI();
+    }
+
+    /* SELECTION */
+    function toggleSelection(name) {
+
+        if (selected.has(name)) {
+            selected.delete(name);
+        } else {
+            selected.add(name);
+        }
+
+        renderGallery();
+    }
+
+    function selectAll() {
+
+        filteredFiles.forEach(file => {
+            selected.add(file.name);
+        });
+
+        renderGallery();
+    }
+
+    function clearSelection() {
+
+        selected.clear();
+        renderGallery();
+    }
+
+    function updateSelectionUI() {
+
+        const amount = selected.size;
+
+        document.getElementById("selectionInfo").textContent =
+            `${amount} selected`;
+
+        document.getElementById("downloadSelected").disabled =
+            amount === 0;
+    }
+
+    /* VIEWER */
+    function openViewer(index) {
+
+        currentIndex = index;
+
+        showCurrentMedia();
+
+        document.getElementById("viewer")
+            .classList.add("open");
+
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeViewer() {
+
+        document.getElementById("viewer")
+            .classList.remove("open");
+
+        document.getElementById("viewerContent")
+            .innerHTML = "";
+
+        document.body.style.overflow = "";
+
+        currentIndex = -1;
+    }
+
+    function showCurrentMedia() {
+
+        const file = filteredFiles[currentIndex];
+
+        if (!file) return;
+
+        const content = document.getElementById("viewerContent");
+
+        content.innerHTML = "";
+
+        document.getElementById("viewerName").textContent =
+            file.name;
+
+        if (file.mediaType === "image") {
+
+            const img = document.createElement("img");
+
+            img.src = file.url;
+            img.alt = file.name;
+
+            content.appendChild(img);
+
+        } else {
+
+            const video = document.createElement("video");
+
+            video.src = file.url;
+            video.controls = true;
+            video.autoplay = true;
+
+            content.appendChild(video);
+        }
+    }
+
+    function nextMedia() {
+
+        if (!filteredFiles.length) return;
+
+        currentIndex =
+            (currentIndex + 1) % filteredFiles.length;
+
+        showCurrentMedia();
+    }
+
+    function previousMedia() {
+
+        if (!filteredFiles.length) return;
+
+        currentIndex =
+            (currentIndex - 1 + filteredFiles.length)
+            % filteredFiles.length;
+
+        showCurrentMedia();
+    }
+
+    /* DOWNLOAD CURRENT */
+    function downloadCurrent() {
+
+        const file = filteredFiles[currentIndex];
+
+        if (!file) return;
+
+        downloadFile(file);
+    }
+
+    /* SINGLE DOWNLOAD */
+    function downloadFile(file) {
+
+        const link = document.createElement("a");
+
+        link.href = file.url;
+        link.download = file.name;
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+    }
+
+    /* BULK DOWNLOAD */
+    async function downloadSelected() {
+
+        const selectedFiles =
+            files.filter(file => selected.has(file.name));
+
+        if (!selectedFiles.length) return;
+
+        /*
+         * Browsers cannot create a real ZIP file using only
+         * a normal download link. For a simple version, this
+         * downloads each selected file individually.
+         */
+
+        for (let i = 0; i < selectedFiles.length; i++) {
+
+            downloadFile(selectedFiles[i]);
+
+            /*
+             * Small delay prevents the browser from blocking
+             * multiple downloads.
+             */
+            await new Promise(resolve =>
+                setTimeout(resolve, 150)
+            );
+        }
+    }
+
+    /* KEYBOARD CONTROLS */
+    document.addEventListener("keydown", event => {
+
+        const viewerOpen =
+            document.getElementById("viewer")
+                .classList.contains("open");
+
+        if (!viewerOpen) return;
+
+        if (event.key === "Escape") {
+            closeViewer();
+        }
+
+        if (event.key === "ArrowRight") {
+            nextMedia();
+        }
+
+        if (event.key === "ArrowLeft") {
+            previousMedia();
+        }
+    });
+
+    /* CLICK BACKGROUND TO CLOSE */
+    document.getElementById("viewer")
+        .addEventListener("click", event => {
+
+            if (event.target.id === "viewer") {
+                closeViewer();
+            }
+        });
+
+    /* START */
+    loadAlbum();
+</script>
+
+</body>
+</html>
+```
