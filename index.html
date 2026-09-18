@@ -455,10 +455,16 @@
 
             const data = await response.json();
 
-            files = data.files.filter(file =>
-                file.mediaType === "image" ||
-                file.mediaType === "video"
-            );
+            files = data.files
+                .filter(file =>
+                    file.mediaType === "image" ||
+                    file.mediaType === "video"
+                )
+                .map(file => ({
+                    ...file,
+                    url: "https://github.com/parshwa282011/parnu-2026/raw/refs/heads/main/" +
+                         encodeURIComponent(file.name)
+                }));
 
             applyFilter();
 
